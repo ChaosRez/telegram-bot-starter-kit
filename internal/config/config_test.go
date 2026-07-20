@@ -55,6 +55,24 @@ func TestLoadValidatesWorkerCount(t *testing.T) {
 	}
 }
 
+func TestLoadRejectsUnknownAllowedUpdate(t *testing.T) {
+	t.Setenv("TELEGRAM_BOT_TOKEN", "test-token")
+
+	_, err := Load(writeConfig(t, "telegram:\n  allowed_updates:\n    - message\n    - callback_queries\n"))
+	if err == nil || !strings.Contains(err.Error(), `allowed_updates[1] "callback_queries" is not supported`) {
+		t.Fatalf("Load() error = %v, want unsupported-update error", err)
+	}
+}
+
+func TestLoadRejectsDuplicateAllowedUpdate(t *testing.T) {
+	t.Setenv("TELEGRAM_BOT_TOKEN", "test-token")
+
+	_, err := Load(writeConfig(t, "telegram:\n  allowed_updates:\n    - message\n    - message\n"))
+	if err == nil || !strings.Contains(err.Error(), `allowed_updates contains duplicate "message"`) {
+		t.Fatalf("Load() error = %v, want duplicate-update error", err)
+	}
+}
+
 func TestLoadRequiresBotToken(t *testing.T) {
 	t.Setenv("TELEGRAM_BOT_TOKEN", "")
 

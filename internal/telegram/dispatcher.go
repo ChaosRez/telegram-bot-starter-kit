@@ -36,10 +36,13 @@ func NewDispatcher(repository users.Repository, localizer *localization.Localize
 // Handle processes one Telegram update.
 func (dispatcher *Dispatcher) Handle(ctx context.Context, api API, update *models.Update) error {
 	if update.CallbackQuery != nil {
+		if err := dispatcher.handleCallback(ctx, api, update.CallbackQuery); err != nil {
+			return err
+		}
 		if err := dispatcher.persistUser(ctx, &update.CallbackQuery.From); err != nil {
 			return err
 		}
-		return dispatcher.handleCallback(ctx, api, update.CallbackQuery)
+		return nil
 	}
 	if update.Message == nil {
 		return nil

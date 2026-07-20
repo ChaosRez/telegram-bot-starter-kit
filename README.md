@@ -17,7 +17,8 @@ business logic behind clear boundaries.
 - Structured logging without message text, usernames, callback data, or tokens
 - Strict YAML configuration plus environment-provided secrets
 - Graceful `SIGINT` and `SIGTERM` shutdown
-- Unit tests, race detection, `go vet`, vulnerability scanning, and Dependabot
+- Unit and MongoDB integration tests, race detection, `go vet`, vulnerability
+  scanning, container builds, and Dependabot
 - Non-root multi-stage container image and a local MongoDB Compose service
 
 ## Architecture
@@ -26,7 +27,7 @@ business logic behind clear boundaries.
 Telegram long polling
         │
         ▼
-recovery + logging middleware
+recovery middleware + outcome logging
         │
         ▼
 update dispatcher ───► command/callback handlers ───► Telegram API
@@ -158,6 +159,9 @@ make tidy        # normalize module dependencies
 
 - Long polling needs one active bot process. Running multiple pollers with the
   same token causes update conflicts.
+- Startup fails when the bot already has a webhook configured because Telegram
+  does not allow webhooks and long polling at the same time. Delete the webhook
+  before starting this polling-based kit.
 - A polling process may lose an in-flight update if it is forcefully killed.
   Use a durable webhook/queue design when processing must be at-least-once.
 - Keep message contents out of logs unless your product has an explicit privacy

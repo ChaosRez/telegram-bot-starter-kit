@@ -13,13 +13,27 @@ import (
 // Handler adapts the error-returning dispatcher to the Telegram library.
 func Handler(dispatcher *Dispatcher, logger *slog.Logger) bot.HandlerFunc {
 	return func(ctx context.Context, telegramBot *bot.Bot, update *models.Update) {
-		if err := dispatcher.Handle(ctx, telegramBot, update); err != nil {
-			logger.ErrorContext(ctx, "update handler failed",
-				"update_id", update.ID,
-				"update_type", updateType(update),
-				"error", err,
-			)
+		started := time.Now()
+		attributes := []any{
+			"update_id", update.ID,
+			"update_type", updateType(update),
 		}
+		if err := dispatcher.Handle(ctx, telegramBot, update); err != nil {
+			logger.ErrorContext(ctx, "update handled",
+				append(attributes,
+					"outcome", "error",
+					"duration_ms", time.Since(started).Milliseconds(),
+					"error", err,
+				)...,
+			)
+			return
+		}
+		logger.InfoContext(ctx, "update handled",
+			append(attributes,
+				"outcome", "success",
+				"duration_ms", time.Since(started).Milliseconds(),
+			)...,
+		)
 	}
 }
 
@@ -38,22 +52,6 @@ func Recovery(logger *slog.Logger) bot.Middleware {
 				}
 			}()
 			next(ctx, telegramBot, update)
-		}
-	}
-}
-
-// Logging records update metadata and duration without logging message text,
-// usernames, callback data, or the bot token.
-func Logging(logger *slog.Logger) bot.Middleware {
-	return func(next bot.HandlerFunc) bot.HandlerFunc {
-		return func(ctx context.Context, telegramBot *bot.Bot, update *models.Update) {
-			started := time.Now()
-			next(ctx, telegramBot, update)
-			logger.InfoContext(ctx, "update handled",
-				"update_id", update.ID,
-				"update_type", updateType(update),
-				"duration_ms", time.Since(started).Milliseconds(),
-			)
 		}
 	}
 }

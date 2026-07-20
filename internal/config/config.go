@@ -9,10 +9,39 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-telegram/bot/models"
 	"gopkg.in/yaml.v3"
 )
 
 const defaultMongoURI = "mongodb://localhost:27017"
+
+var allowedTelegramUpdates = map[string]struct{}{
+	models.AllowedUpdateMessage:                 {},
+	models.AllowedUpdateEditedMessage:           {},
+	models.AllowedUpdateChannelPost:             {},
+	models.AllowedUpdateEditedChannelPost:       {},
+	models.AllowedUpdateBusinessConnection:      {},
+	models.AllowedUpdateBusinessMessage:         {},
+	models.AllowedUpdateEditedBusinessMessage:   {},
+	models.AllowedUpdateDeletedBusinessMessages: {},
+	models.AllowedUpdateMessageReaction:         {},
+	models.AllowedUpdateMessageReactionCount:    {},
+	models.AllowedUpdateInlineQuery:             {},
+	models.AllowedUpdateChosenInlineResult:      {},
+	models.AllowedUpdateCallbackQuery:           {},
+	models.AllowedUpdateShippingQuery:           {},
+	models.AllowedUpdatePreCheckoutQuery:        {},
+	models.AllowedUpdatePurchasedPaidMedia:      {},
+	models.AllowedUpdatePoll:                    {},
+	models.AllowedUpdatePollAnswer:              {},
+	models.AllowedUpdateMyChatMember:            {},
+	models.AllowedUpdateChatMember:              {},
+	models.AllowedUpdateChatJoinRequest:         {},
+	models.AllowedUpdateChatBoost:               {},
+	models.AllowedUpdateRemovedChatBoost:        {},
+	models.AllowedUpdateManagedBot:              {},
+	models.AllowedUpdateGuestMessage:            {},
+}
 
 // Duration is a YAML-friendly time.Duration.
 type Duration struct {
@@ -156,6 +185,25 @@ func (cfg Config) Validate() error {
 	}
 	if len(cfg.Telegram.AllowedUpdates) == 0 {
 		problems = append(problems, errors.New("telegram.allowed_updates cannot be empty"))
+	}
+	seenUpdates := make(map[string]struct{}, len(cfg.Telegram.AllowedUpdates))
+	for index, updateType := range cfg.Telegram.AllowedUpdates {
+		if _, ok := allowedTelegramUpdates[updateType]; !ok {
+			problems = append(problems, fmt.Errorf(
+				"telegram.allowed_updates[%d] %q is not supported",
+				index,
+				updateType,
+			))
+			continue
+		}
+		if _, duplicate := seenUpdates[updateType]; duplicate {
+			problems = append(problems, fmt.Errorf(
+				"telegram.allowed_updates contains duplicate %q",
+				updateType,
+			))
+			continue
+		}
+		seenUpdates[updateType] = struct{}{}
 	}
 	if strings.TrimSpace(cfg.MongoDB.URI) == "" {
 		problems = append(problems, errors.New("MONGODB_URI cannot be empty"))

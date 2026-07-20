@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/go-telegram/bot"
@@ -102,6 +103,25 @@ func TestUnknownCallbackIsAnswered(t *testing.T) {
 	}
 	if len(api.answers) != 1 || api.answers[0].Text != "This action is no longer available." {
 		t.Fatalf("callback answers = %#v", api.answers)
+	}
+}
+
+func TestCallbackIsAnsweredWhenPersistenceFails(t *testing.T) {
+	dispatcher, repository := newTestDispatcher(t)
+	repository.err = errors.New("database unavailable")
+	api := &fakeAPI{}
+	update := &models.Update{CallbackQuery: &models.CallbackQuery{
+		ID:   "callback-3",
+		Data: aboutCallback,
+		From: models.User{ID: 42, LanguageCode: "en"},
+	}}
+
+	err := dispatcher.Handle(context.Background(), api, update)
+	if err == nil || !strings.Contains(err.Error(), "save user") {
+		t.Fatalf("Handle() error = %v, want persistence error", err)
+	}
+	if len(api.answers) != 1 {
+		t.Fatalf("callback answers = %d, want 1", len(api.answers))
 	}
 }
 

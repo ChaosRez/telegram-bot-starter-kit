@@ -3,6 +3,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -18,7 +19,14 @@ import (
 	"github.com/rezamalek/telegram-bot-starter-kit/internal/users"
 )
 
-const shutdownTimeout = 10 * time.Second
+const (
+	shutdownTimeout        = 10 * time.Second
+	telegramRequestTimeout = 10 * time.Second
+)
+
+type webhookInfoAPI interface {
+	GetWebhookInfo(context.Context) (*models.WebhookInfo, error)
+}
 
 // Run starts MongoDB, builds the Telegram bot, and blocks while long polling is
 // active. Cancel ctx to stop polling and close the database connection.
@@ -66,7 +74,6 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger) (runErr er
 		bot.WithDefaultHandler(telegramadapter.Handler(dispatcher, logger)),
 		bot.WithMiddlewares(
 			telegramadapter.Recovery(logger),
-			telegramadapter.Logging(logger),
 		),
 		bot.WithErrorsHandler(func(err error) {
 			logger.Error("Telegram polling error", "error", err)
@@ -74,6 +81,9 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger) (runErr er
 	)
 	if err != nil {
 		return fmt.Errorf("create Telegram bot: %w", err)
+	}
+	if err := ensurePollingAvailable(ctx, telegramBot); err != nil {
+		return err
 	}
 
 	if cfg.Telegram.SyncCommands {
@@ -91,8 +101,22 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger) (runErr er
 	return nil
 }
 
+func ensurePollingAvailable(ctx context.Context, telegramAPI webhookInfoAPI) error {
+	requestContext, cancel := context.WithTimeout(ctx, telegramRequestTimeout)
+	defer cancel()
+
+	webhook, err := telegramAPI.GetWebhookInfo(requestContext)
+	if err != nil {
+		return fmt.Errorf("inspect Telegram webhook: %w", err)
+	}
+	if webhook != nil && webhook.URL != "" {
+		return errors.New("Telegram webhook is configured; delete it before starting long polling")
+	}
+	return nil
+}
+
 func syncCommands(ctx context.Context, telegramBot *bot.Bot, logger *slog.Logger) {
-	requestContext, cancel := context.WithTimeout(ctx, 10*time.Second)
+	requestContext, cancel := context.WithTimeout(ctx, telegramRequestTimeout)
 	defer cancel()
 
 	_, err := telegramBot.SetMyCommands(requestContext, &bot.SetMyCommandsParams{
