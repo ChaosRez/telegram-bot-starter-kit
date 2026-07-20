@@ -182,3 +182,8 @@ internal/localization/      embedded locale files
 internal/telegram/          dispatcher, handlers, and middleware
 internal/users/             domain repository and MongoDB implementation
 ```
+
+## Contributing
+
+Keep changes focused, add or update tests and documentation, and run
+`make verify` before opening a pull request. Never commit bot tokens or `.env`.
