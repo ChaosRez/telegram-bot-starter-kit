@@ -1,0 +1,7 @@
+greeting_message: "Hallo! Telegram ist großartig."
+farewell_message: "Tschüss! Ich werde dich vermissen."
+help_message: "Verfügbare Befehle:\n/start - Bot starten\n/help - Diese Hilfe anzeigen\n/stop - Verabschieden"
+unknown_command: "Diesen Befehl kenne ich nicht. Versuche /help."
+about_button: "Über diesen Bot"
+about_message: "Ein Polling-orientiertes Telegram-Bot-Starter-Kit in Go."
+unknown_callback: "Diese Aktion ist nicht mehr verfügbar."

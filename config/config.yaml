@@ -1,0 +1,17 @@
+telegram:
+  poll_timeout: 30s
+  workers: 1
+  allowed_updates:
+    - message
+    - callback_query
+  sync_commands: true
+
+mongodb:
+  database: telegram_bot
+  users_collection: users
+  connect_timeout: 10s
+  operation_timeout: 5s
+
+logging:
+  level: info
+  format: json
