@@ -5,7 +5,7 @@ go 1.26.0
 toolchain go1.26.5
 
 require (
-	github.com/go-telegram/bot v1.22.0
+	github.com/go-telegram/bot v1.27.0
 	go.mongodb.org/mongo-driver/v2 v2.8.0
 	gopkg.in/yaml.v3 v3.0.1
 )
